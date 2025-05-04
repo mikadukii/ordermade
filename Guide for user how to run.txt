@@ -1,0 +1,13 @@
+How to run this website locally
+
+so you have this file already downloaded
+basically you have to terminal
+there's visual instructions for in case don't know how to run
+cd backend -> npm run dev
+cd frontend -> npm run dev
+
+
+
+or if it cannot run the website locally here's the deployed link
+
+or github

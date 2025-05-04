@@ -1,0 +1,7 @@
+Iteration 1
+in iteration 1 I've been experienced some issues with the testing and running the website
+which initially using MEAN stack based for full stack website and switched to MERN stack based website
+for development 
+
+Iteration 2
+Switch up to MERN based website for some use cases 

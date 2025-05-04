@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Only define global styles that don't conflict with Tailwind */
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* Remove conflicting body styles */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Let Tailwind handle button styles */
+button {
+  transition: all 0.3s ease-in-out;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+/* Let Tailwind handle form elements */
+input {
+  transition: 0.3s ease-in-out;
+}
