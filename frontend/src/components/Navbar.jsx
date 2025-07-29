@@ -31,10 +31,7 @@ const Navbar = ({ userInfo }) => {
           <button className="text-white font-semibold hover:bg-emerald-700 px-4 py-2" onClick={() => navigate('/Services')}>
             Services
           </button>
-          <button className="text-white font-semibold hover:bg-emerald-700 px-4 py-2" onClick={() => navigate('/About')}>
-            About
-          </button>
-
+          
           {/* Conditional render: Login or ProfileInfo */}
           {!isToken || !userInfo ? (
             <button className="text-white font-semibold hover:bg-emerald-700 px-4 py-2" onClick={() => navigate('/login')}>

@@ -11,10 +11,12 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const upload = require('./multer');
+const Order = require('./src/models/order.model.js');
+
 app.use(cors({ origin: '*' }));
 
-const {authenticateToken} = require('./utilities.js');
 
+const {authenticateToken, isAdmin} = require('./utilities.js');
 // Connect to MongoDB
 mongoose.connect(config.connectionString, {
   useNewUrlParser: true,
@@ -31,6 +33,10 @@ mongoose.connection.on('error', (err) => {
 });
 
 
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true // Optional, if using cookies or authorization headers
+}));
 
 //handler for image upload
 app.post("/image-upload", upload.single("image"), async (req, res) => {
@@ -41,8 +47,8 @@ app.post("/image-upload", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const imageUrl = `http://localhost:3000/uploads/${req.file.filename}`;
-    res.status(201).json({ imageUrl });
+    const imageURL = `http://localhost:3000/uploads/${req.file.filename}`;
+    res.status(201).json({ imageURL });
 
   } catch (error) {
     console.error("Upload error:", error);
@@ -54,6 +60,8 @@ app.post("/image-upload", upload.single("image"), async (req, res) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const adminRoutes = require('./src/routes/adminRoute.js'); // adjust path as needed
+app.use('/api/admin', adminRoutes);
 
 // Define the User model
 const User = require('./src/models/user.models.js');
@@ -62,62 +70,47 @@ const Services = require('./src/models/services.model.js');
 
 // Register Account
 app.post("/register", async (req, res) => {
-  // Check if request body is provided
-  if (!req.body) {
-      return res.status(400).json({ message: 'Missing request body' });
-  }
-
-  // Destructure the required fields from the body
   const { username, email, password, bustSize, waistSize, hipSize } = req.body;
 
-  // Ensure all fields are filled
   if (!username || !email || !password || !bustSize || !waistSize || !hipSize) {
-      return res.status(400).json({ message: 'Please fill all fields' });
+    return res.status(400).json({ message: 'Please fill all fields' });
   }
 
   try {
-      // Check if user already exists
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-          return res.status(400).json({ message: 'User already exists with this email' });
-      }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists with this email' });
+    }
 
-      // Hash the password securely
-      const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      username,
+      email,
+      password, 
+      bustSize,
+      waistSize,
+      hipSize,
+    });
 
-      // Create a new user instance
-      const newUser = new User({
-          username,
-          email,
-          password: hashedPassword,
-          bustSize,
-          waistSize,
-          hipSize,
-      });
+    await newUser.save(); 
 
-      // Save the user to the database
-      await newUser.save();
+    const accessToken = jwt.sign(
+      { userId: newUser._id },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: '72h' }
+    );
 
-      // Create a JWT access token for the user
-      const accessToken = jwt.sign(
-          { userId: newUser._id },
-          process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: '72h' }
-      );
-
-      // Respond with the newly created user's info and access token
-      return res.status(201).json({
-          error: false,
-          user: { username: newUser.username, email: newUser.email },
-          accessToken,
-          message: 'User created successfully'
-      });
+    return res.status(201).json({
+      error: false,
+      user: { username: newUser.username, email: newUser.email },
+      accessToken,
+      message: 'User created successfully'
+    });
   } catch (error) {
-      // Handle any errors that occur during the process
-      console.error("Error during registration:", error);
-      return res.status(500).json({ message: 'Internal server error during registration' });
+    console.error("Error during registration:", error);
+    return res.status(500).json({ message: 'Internal server error during registration' });
   }
 });
+
 
 
 app.post("/login", async (req, res) => {
@@ -132,13 +125,25 @@ app.post("/login", async (req, res) => {
     return res.status(400).json({ message: 'User did not register the email yet' });
   }
 
-  const isPasswordValid = await bcrypt.compare(password, user.password);
+  console.log('Attempt login:', { email, passwordAttempt: password });
+  console.log('Stored password hash:', user.password);
+
+  let isPasswordValid = false;
+  try {
+    isPasswordValid = await bcrypt.compare(password, user.password);
+  } catch (error) {
+    console.error('bcrypt compare error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+
+  console.log('Password valid:', isPasswordValid);
+
   if (!isPasswordValid) {
     return res.status(400).json({ message: 'Invalid password' });
   }
 
   const accessToken = jwt.sign(
-    { userId: user._id },
+    { userId: user._id, role: user.role },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: '72h' }
   );
@@ -146,15 +151,21 @@ app.post("/login", async (req, res) => {
   return res.status(200).json({
     error: false,
     user: {
-      userId: user._id, // ✅ include _id so frontend can store it
+      userId: user._id,
       username: user.username,
       email: user.email,
+      role: user.role,
     },
     accessToken,
     message: 'Login successful',
   });
 });
 
+
+// admin-only route
+app.get('/admin-dashboard', authenticateToken, isAdmin, (req, res) => {
+  res.status(200).json({ message: 'Welcome to the Admin Dashboard!' });
+});
 
 app.get("/get-user", authenticateToken, async (req, res) => {
   const { userId } = req.user; // Assuming you are getting the userId from the authenticated token
@@ -228,7 +239,7 @@ app.put("/edit-profile/:id", authenticateToken, async (req, res) => {
 
 
 
-app.post("/add-portfolio", authenticateToken, async (req, res) => {
+app.post("/add-portfolio", authenticateToken, isAdmin, async (req, res) => {
   try {
       const { title, description, imageURL } = req.body;
       const { userId } = req.user;
@@ -263,69 +274,49 @@ app.post("/add-portfolio", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/add-services", authenticateToken, async (req, res) => {
-  try {
-      const { title, price, category, description, imageURL } = req.body;
-      console.log(req.body);  // Log the received data for debugging
-
-      const { userId } = req.user;
-
-      // Validate input fields
-      if (!title || !price || !category || !description || !imageURL) {
-          return res.status(400).json({
-              error: true,
-              message: 'Please fill all fields',
-          });
-      }
-
-      // Create and save the service to the database
-      const service = new Services({
-          title,
-          price,
-          category,
-          description,
-          imageURL,
-          createdBy: userId,
-      });
-
-      await service.save();
-
-      return res.status(201).json({
-          error: false,
-          message: 'Service created successfully',
-      });
-
-  } catch (error) {
-      console.error('Error adding service:', error);
-      return res.status(500).json({
-          error: true,
-          message: 'Internal server error',
-      });
-  }
-});
-
 
 app.post('/place-order', authenticateToken, async (req, res) => {
-  const { title, description, referenceImage, serviceId, userId } = req.body;
+  const { title, description, imageURL, servicesId } = req.body;
+  const { userId } = req.user;
+
+  if (!title || !description || !imageURL || !servicesId) {
+    return res.status(400).json({ message: 'Please fill all fields' });
+  }
 
   try {
     const newOrder = new Order({
       title,
       description,
-      referenceImage,
-      serviceId,
-      user: userId,
+      imageURL,
+      servicesId,
+      createdBy: req.user.userId,
     });
 
     await newOrder.save();
-    res.status(201).json({ message: 'Order placed successfully' });
+    res.status(201).json({ message: 'Order placed successfully' , order: newOrder});
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to place order' });
+    console.error('Error placing order:', error);
+    return res.status(500).json({ message: 'Failed to place order', error: error.message });
+  }  
+});
+
+// Get logged-in user's own orders
+app.get("/user-orders", authenticateToken, async (req, res) => {
+  const { userId } = req.user;
+
+  try {
+    const orders = await Order.find({ createdBy: userId })
+      .populate("servicesId") // Include service details
+      .sort({ createdAt: -1 }); // Optional: latest first
+
+    res.status(200).json({ orders });
+  } catch (err) {
+    console.error("Failed to fetch user orders", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-  
+
   
 // serve static files from uploads and assets directory
 app.use('/uploads', express.static(path.join(__dirname,'uploads')));
@@ -358,20 +349,17 @@ app.delete("/delete-image", async (req, res) => {
   }
 });
 
-app.get("/get-portfolio", authenticateToken, async (req, res) => {
-  const { userId } = req.user;
-  
+app.get("/get-portfolio", async (req, res) => {
   try {
-      const isPortfolio = await Portfolio.find({ createdBy: userId });
-      res.status(200).json({ portfolio: isPortfolio });
+    const portfolios = await Portfolio.find(); // You can filter by isPublished if needed
+    res.status(200).json({ portfolio: portfolios });
   } catch (error) {
-      res.status(500).json({ error: true, message: 'Internal server error' });
+    res.status(500).json({ error: true, message: 'Internal server error' });
   }
 });
 
+
 app.get("/get-services", authenticateToken, async (req, res) => {
-    const { userId } = req.user;
-    
     try {
         const isServices = await Services.find({ createdBy : userId});
         res.status(200).json({ services: isServices });
@@ -380,7 +368,30 @@ app.get("/get-services", authenticateToken, async (req, res) => {
     }
 })
 
-app.put("/edit-portfolio/:id", authenticateToken, async (req, res) => {
+// Get all services (public)
+app.get('/services', async (req, res) => {
+  try {
+    const services = await Services.find(); // or whatever your model is
+    res.json({ services });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch services' });
+  }
+});
+
+// Get services by ID (public)
+app.get('/get-services-id/:id', authenticateToken, async (req, res) => {
+  try {
+    const services = await Services.findById(req.params.id);
+    if (!services) return res.status(404).json({ message: 'Service not found' });
+    res.json({ services });
+  } catch (err) {
+    console.error('GET /services/:id error', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+app.put("/edit-portfolio/:id", authenticateToken, isAdmin, async (req, res) => {
     const { title, description, imageURL } = req.body;
     const { userId } = req.user;
     const { id } = req.params;
@@ -408,37 +419,9 @@ app.put("/edit-portfolio/:id", authenticateToken, async (req, res) => {
     }
 })
   
-app.put("/edit-services/:id", authenticateToken, async (req, res) => {
-    const { title, price, category, description, imageURL } = req.body;
-    const { userId } = req.user;
-    const { id } = req.params;
-  
-    // Validation
-    if (!title || !price || !category || !description || !imageURL) {
-      return res.status(400).json({ message: 'Please fill all fields' });
-    }
-  
-    try {
-      const services = await Services.findByIdAndUpdate(id, {
-        title,
-        price,
-        category,
-        description,
-        imageURL,
-        userId,
-      }, { new: true });
-  
-      return res.status(201).json({
-        services: services,
-        message: 'Services updated successfully',
-      });
-    } catch (error) {
-      return res.status(400).json({ error: true, message: 'Internal server error' });
-    }
-  }
-); 
 
-app.delete("/delete-portfolio/:id", authenticateToken, async (req, res) => {
+
+app.delete("/delete-portfolio/:id", authenticateToken, isAdmin, async (req, res) => {
   const { id } = req.params;
   const { userId } = req.user;
 
@@ -467,7 +450,7 @@ app.delete("/delete-portfolio/:id", authenticateToken, async (req, res) => {
   }
 });
 
-app.delete("/delete-services/:id", authenticateToken, async (req, res) => {
+app.delete("/delete-services/:id", authenticateToken, isAdmin, async (req, res) => {
     const { id } = req.params;
     const { userId } = req.user;
     try {
@@ -480,8 +463,8 @@ app.delete("/delete-services/:id", authenticateToken, async (req, res) => {
     // delete services from database
     await Services.deleteOne({ _id: id, userId: userId });
     
-    const imageUrl = services.imageUrl;
-    const filename = path.basename(imageUrl);
+    const imageURL = services.imageURL;
+    const filename = path.basename(imageURL);
 
     const filePath = path.join(__dirname, 'uploads', filename);
 
@@ -495,21 +478,80 @@ app.delete("/delete-services/:id", authenticateToken, async (req, res) => {
     res.status(200).json({ message: 'Services deleted successfully' });
 });
 
-// routes/orders.js or wherever appropriate
-app.get("/user-orders", authenticateToken, async (req, res) => {
-  const { userId } = req.user;
+
+//stripe payment integration
+const stripe = require('stripe')('sk_test_51RRpyq2eCI3ypHyOVP4Ycj1IUB8IBiV7xDFlTQO4Bhu2fH6dEyAODcVzz7BVXYpSQquRQK0HTYnkZT8Az7RauXaB002TsoCUOi'); 
+
+app.post('/create-checkout-session', authenticateToken, async (req, res) => {
+  const { servicesId, title, description, imageURL } = req.body;
 
   try {
-    const orders = await Order.find({ userId }).populate("servicesId");
-    res.json({ orders });
+    const services = await Services.findById(servicesId);
+    if (!services) {
+      return res.status(404).json({ message: 'Service not found' });
+    }
+
+    // Construct query string to redirect back after Stripe
+    const successUrl = new URL('http://localhost:5173/order-success');
+    successUrl.searchParams.append('servicesId', servicesId);
+    successUrl.searchParams.append('title', encodeURIComponent(title));
+    successUrl.searchParams.append('desc', encodeURIComponent(description));
+    successUrl.searchParams.append('imageURL', encodeURIComponent(imageURL));
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: services.title,
+              images: [services.imageURL], // ✅ must be a full URL
+            },
+            unit_amount: services.price * 100,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: successUrl.toString(),
+      cancel_url: 'http://localhost:5173/order-cancelled',
+    });
+
+    return res.json({ url: session.url });
   } catch (err) {
-    console.error("Failed to fetch user orders", err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error('Stripe session error:', err);
+    return res.status(500).json({ error: 'Failed to create checkout session' });
   }
 });
 
+app.get('/recommended-services', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
 
+    const orders = await Order.find({ userId }).populate('servicesId');
 
+    if (!orders.length) {
+      const fallbackServices = await Services.find().limit(5);
+      return res.status(200).json({ recommended: fallbackServices });
+    }
+
+    const categoryCount = {};
+    orders.forEach(order => {
+      const category = order.servicesId.category || 'general';
+      categoryCount[category] = (categoryCount[category] || 0) + 1;
+    });
+
+    const mostFrequentCategory = Object.entries(categoryCount).sort((a, b) => b[1] - a[1])[0][0];
+
+    const recommended = await Services.find({ category: mostFrequentCategory }).limit(5);
+
+    res.status(200).json({ recommended });
+  } catch (error) {
+    console.error('Error fetching recommended services:', error);
+    res.status(500).json({ message: 'Error fetching recommendations' });
+  }
+});
 
 // Start the server
 const PORT = Number(process.env.PORT?.trim()) || 3000;

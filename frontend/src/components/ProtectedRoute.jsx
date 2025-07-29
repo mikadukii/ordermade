@@ -1,18 +1,27 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, adminOnly = false }) => {
   const token = localStorage.getItem('token');
-  const location = useLocation();
 
-  // If there's no token, store the intended path and redirect to login
   if (!token) {
-    localStorage.setItem('intendedPath', location.pathname);
     return <Navigate to="/login" replace />;
   }
 
-  // Return children (protected content) if the token exists
-  return children;
+  try {
+    const decoded = jwtDecode(token);
+    const role = decoded.role;
+
+    // ✅ Only redirect if adminOnly is true and user is not admin
+    if (adminOnly && role !== 'admin') {
+      return <Navigate to="/profile" replace />;
+    }
+
+    return children;
+  } catch (err) {
+    console.error("Invalid token:", err);
+    return <Navigate to="/login" replace />;
+  }
 };
 
 export default ProtectedRoute;

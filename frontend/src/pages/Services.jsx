@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import ServiceCard from './ServiceCard';  // Updated from PortfolioCard to ServiceCard
-import AddEditService from './AddEditServices';  // Updated from AddEditPortfolio to AddEditService
+import ServicesCard from './admin/ServicesCard';
+import AddEditServices from './admin/AddEditServices';
 import Modal from 'react-modal';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { MdAdd } from 'react-icons/md';
 
 const Services = () => {
   const navigate = useNavigate();
 
   const [userInfo, setUserInfo] = useState(null);
   const [serviceItems, setServiceItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const [openAddEditModal, setOpenAddEditModal] = useState({
     isShown: false,
     type: "add",
@@ -40,23 +41,13 @@ const Services = () => {
     }
   };
 
+  // Remove Authorization header here because your backend /services route is public
   const getServices = async () => {
+    setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No token found");
-      }
-      
-      const response = await axios.get("http://localhost:3000/get-services", {
-        headers: {
-          Authorization: `Bearer ${token}`, // Pass the token as a header
-        },
-      });
-
-      console.log("Services Response:", response); // Log the response to verify the structure
-
-      if (response.data?.Services) {
-        setServiceItems(response.data.Services);
+      const response = await axios.get("http://localhost:3000/services");
+      if (response.data?.services) {
+        setServiceItems(response.data.services);
       }
     } catch (error) {
       console.error("Unexpected Error Occurred:", error);
@@ -64,20 +55,31 @@ const Services = () => {
         localStorage.clear();
         navigate("/login");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
+  const openModal = (type, data = null) => {
+    setOpenAddEditModal({ isShown: true, type, data });
+  };
+
+  const closeModal = () => {
+    setOpenAddEditModal({ isShown: false, type: "add", data: null });
+  };
+
+  // Fix here: pass type and data separately instead of a single object
   const handleEditService = (item) => {
-    setOpenAddEditModal({ isShown: true, type: "edit", data: item });
+    openModal("edit", item);
   };
 
   const handleViewService = (item) => {
-    console.log("View service item", item);
+    navigate(`/order-services/${item._id}`);
   };
 
   useEffect(() => {
-    getServices();
     getUserInfo();
+    getServices();
   }, []);
 
   return (
@@ -85,23 +87,29 @@ const Services = () => {
       <Navbar userInfo={userInfo} />
 
       <div className="container mx-auto py-10">
+        <h1 className="text-3xl font-bold text-gray-800 px-8 mb-2">Services List</h1>
+        <p className="text-xl font-semibold text-gray-500 px-8 mb-2">List of services available</p>
         <div className="flex gap-7">
+
           <div className="flex-1">
-            {serviceItems.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4">
+            {loading ? (
+              <p>Loading services...</p>
+            ) : serviceItems.length > 0 ? (
+              <div className="grid grid-cols-3 gap-4 px-8">
                 {serviceItems.map((item) => (
-                  <ServiceCard  // Updated from PortfolioCard to ServiceCard
+                  <ServicesCard
                     key={item._id}
                     imgURL={item.imageURL}
                     title={item.title}
                     description={item.description}
-                    onEdit={() => handleEditService(item)}  // Updated to handle services
-                    onClick={() => handleViewService(item)}  // Updated to handle services
+                    onEdit={() => handleEditService(item)}
+                    onClick={() => handleViewService(item)}
+                    isAdmin={userInfo?.isAdmin}
                   />
                 ))}
               </div>
             ) : (
-              <p>No services added yet. Start adding one!</p>  // Updated message
+              <p className="px-8">No services added yet. Start adding one!</p>
             )}
           </div>
 
@@ -110,40 +118,22 @@ const Services = () => {
         </div>
       </div>
 
-      {/* Modal for Add/Edit Service */}
       <Modal
         isOpen={openAddEditModal.isShown}
-        onRequestClose={() =>
-          setOpenAddEditModal({ isShown: false, type: "add", data: null })
-        }
+        onRequestClose={closeModal}
         style={{
-          overlay: {
-            backgroundColor: "rgba(0,0,0,0.2)",
-            zIndex: 999,
-          },
+          overlay: { backgroundColor: 'rgba(0, 0, 0, 0.2)', zIndex: 1000  },
         }}
         ariaHideApp={false}
         className="model-box"
       >
-        <AddEditService  // Updated to AddEditService
+        <AddEditServices
           type={openAddEditModal.type}
-          serviceInfo={openAddEditModal.data}  // Updated to serviceInfo
-          onClose={() =>
-            setOpenAddEditModal({ isShown: false, type: "add", data: null })
-          }
-          getServices={getServices}  // Updated to getServices
+          serviceInfo={openAddEditModal.data}
+          onClose={closeModal}
+          getServices={getServices}
         />
       </Modal>
-
-      {/* Floating Add Button */}
-      <button
-        className="w-16 h-16 flex items-center justify-center rounded-full bg-green-600 text-white hover:bg-green-700 fixed right-10 bottom-10 shadow-lg"
-        onClick={() =>
-          setOpenAddEditModal({ isShown: true, type: "add", data: null })
-        }
-      >
-        <MdAdd size={28} />
-      </button>
 
       <ToastContainer />
     </>

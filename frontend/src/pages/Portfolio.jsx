@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import PortfolioCard from './PortfolioCard';
-import AddEditPortfolio from './AddEditPortfolio';
+import PortfolioCard from './admin/PortfolioCard';
+import AddEditPortfolio from './admin/AddEditPortfolio';
 import Modal from 'react-modal';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -136,7 +136,7 @@ const Portfolio = () => {
         isOpen={openAddEditModal.isShown}
         onRequestClose={closeModal}
         style={{
-          overlay: { backgroundColor: "rgba(0,0,0,0.2)", zIndex: 999 },
+          overlay: { backgroundColor: "rgba(0,0,0,0.2)", zIndex: 1000  },
         }}
         ariaHideApp={false}
         className="model-box"
@@ -148,14 +148,6 @@ const Portfolio = () => {
           getPortfolio={getPortfolio}
         />
       </Modal>
-
-      {/* Floating Add Button */}
-      <button
-        className="w-16 h-16 flex items-center justify-center rounded-full bg-green-600 text-white hover:bg-green-700 fixed right-10 bottom-10 shadow-lg"
-        onClick={() => openModal("add")}
-      >
-        <MdAdd size={28} />
-      </button>
 
       <ToastContainer />
     </>

@@ -16,13 +16,7 @@ body {
 }
 
 /* Let Tailwind handle button styles */
-button {
-  transition: all 0.3s ease-in-out;
-}
 
-button:hover {
-  transform: scale(1.05);
-}
 
 /* Let Tailwind handle form elements */
 input {

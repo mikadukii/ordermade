@@ -1,31 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ServiceCard from '../pages/ServiceCard';
-import sampleImg from '../assets/sample-dress.png';
+import ServicesCard from '../pages/admin/ServicesCard';
+import axios from 'axios';
 
 const ExploreServices = () => {
   const navigate = useNavigate();
+  const [services, setServices] = useState([]);
 
-  const services = [
-    {
-      id: "1",
-      title: "Lolita Inspired Ballerina dress",
-      description: "Past commission my client wanted to make cute dress",
-      imgURL: sampleImg,
-    },
-    {
-      id: "2",
-      title: "Elegant Corset Gown",
-      description: "Custom piece designed for a bridal photoshoot",
-      imgURL: sampleImg,
-    },
-    {
-      id: "3",
-      title: "Modern Kimono Dress",
-      description: "Fusion of traditional and modern aesthetics",
-      imgURL: sampleImg,
-    },
-  ];
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/services'); // adjust the route if needed
+        setServices(response.data.services); // assuming your backend returns { services: [...] }
+      } catch (error) {
+        console.error('Failed to fetch services', error);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   const handleCardClick = (id) => {
     navigate(`/order-services/${id}`);
@@ -38,12 +31,12 @@ const ExploreServices = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {services.map((service) => (
-          <ServiceCard
-            key={service.id}
+          <ServicesCard
+            key={service._id}
             title={service.title}
             description={service.description}
-            imgURL={service.imgURL}
-            onClick={() => handleCardClick(service.id)}
+            imgURL={service.imageURL}
+            onClick={() => handleCardClick(service._id)}
           />
         ))}
       </div>

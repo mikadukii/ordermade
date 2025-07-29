@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import Alert from '../components/Alert';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Register = () => {
     const navigate = useNavigate();
@@ -21,31 +23,29 @@ const Register = () => {
         try {
             const response = await axios.post("http://localhost:3000/register", formsData);
 
-            if (response.data.success) {
-                setMessage({
-                    type: 'success',
-                    content: `Registration successful!\nEmail: ${response.data.user.email}\nPassword: ${formsData.password}\nPlease save these credentials for login.`
-                    });
-                
-                sessionStorage.setItem('tempCredentials', JSON.stringify({
-                    email: formsData.email,
-                    password: formsData.password,
-                }));
+            if (response.data.accessToken && response.data.user) {
+            // ✅ Save token and user info
+            localStorage.setItem("token", response.data.accessToken);
+            localStorage.setItem("user", JSON.stringify(response.data.user));
 
-                setTimeout(() => {
-                    navigate('/login');
-                }, 5000); // Clear message after 5 seconds
+            // ✅ Show toast and redirect
+            toast.success("Registration successful! Redirecting...", { autoClose: 2000 });
+
+            setTimeout(() => {
+                navigate('/');
+            }, 2000);
             }
         } catch (error) {
             setMessage({
-                type: 'error',
-                content: error.response?.data?.message || 'Registration failed'
+            type: 'error',
+            content: error.response?.data?.message || 'Registration failed'
             });
         }
-    };
+        };
+
     
     return (
-        <div className="min-h-screen flex items-center justify-center bg-emerald-500 px-4">
+        <div className="min-h-screen flex items-center justify-center bg-emerald-600 px-4">
             <div className="relative z-10 w-full max-w-lg bg-white rounded-xl shadow-lg p-10">
                 <div className="mb-8 text-center">
                     <h1 className="text-4xl font-bold text-gray-800">Welcome to Ordermade</h1>
@@ -60,7 +60,7 @@ const Register = () => {
                     {/* Personal Information */}
                     <div className="space-y-6">
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username</label>
+                            <label htmlFor="username" className="block text-l font-bold">Username</label>
                             <input
                                 type="text"
                                 id="username"
@@ -76,7 +76,7 @@ const Register = () => {
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                            <label htmlFor="email" className="block text-l font-bold">Email</label>
                             <input
                                 type="email"
                                 id="email"
@@ -92,7 +92,7 @@ const Register = () => {
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                            <label htmlFor="password" className="block text-l font-bold">Password</label>
                             <input
                                 type="password"
                                 id="password"
@@ -109,7 +109,7 @@ const Register = () => {
 
                         {/* Body measurements section */}
                         <div>
-                            <label htmlFor="bustSize" className="block text-sm font-medium text-gray-700">Bust Size</label>
+                            <label htmlFor="bustSize" className="block text-l font-bold">Bust Size</label>
                             <input
                                 type="text"
                                 id="bustSize"
@@ -125,7 +125,7 @@ const Register = () => {
                         </div>
 
                         <div>
-                            <label htmlFor="waistSize" className="block text-sm font-medium text-gray-700">Waist Size</label>
+                            <label htmlFor="waistSize" className="block text-l font-bold">Waist Size</label>
                             <input
                                 type="text"
                                 id="waistSize"
@@ -141,7 +141,7 @@ const Register = () => {
                         </div>
 
                         <div>
-                            <label htmlFor="hipSize" className="block text-sm font-medium text-gray-700">Hip Size</label>
+                            <label htmlFor="hipSize" className="block text-l font-bold">Hip Size</label>
                             <input
                                 type="text"
                                 id="hipSize"
@@ -175,6 +175,10 @@ const Register = () => {
                             Click here to login
                         </Link>
                     </p>
+                </div>
+                <div className="text-center text-emerald-800 text-xs mt-4">
+                Ordermade - fashion based application for customized experience and connect with fashion designers<br />
+                <span className="text-emerald-800">© 2025 All rights reserved made by Michelle Christi Tandiono e2100306 for BIT305</span>
                 </div>
             </div>
         </div>

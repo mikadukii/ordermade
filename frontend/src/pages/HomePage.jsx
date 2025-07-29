@@ -9,7 +9,35 @@ const HomePage = () => {
   const [userInfo, setUserInfo] = useState(null);
   const navigate = useNavigate();
 
+  // Fetch user profile
+    const getUserInfo = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+  
+      try {
+        const response = await axios.get("http://localhost:3000/get-user-profile", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+  
+        if (response.data?.user) {
+          setUserInfo(response.data.user);
+        }
+      } catch (error) {
+        console.error("Fetch failed:", error);
+        if (error.response?.status === 401) {
+          localStorage.clear();
+          navigate("/login");
+        }
+      }
+    };
+
   useEffect(() => {
+    getUserInfo();
     const token = localStorage.getItem("token");
 
     if (token) {
@@ -24,6 +52,8 @@ const HomePage = () => {
         });
     }
   }, []);
+
+  
 
   return (
     <div>

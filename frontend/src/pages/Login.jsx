@@ -21,13 +21,16 @@ const Login = () => {
   }, []);
 
   const handleSubmit = async (e) => {
+    console.log('Submitting login:', formData);
+
     e.preventDefault();
     try {
       const response = await axios.post("http://localhost:3000/login", formData);
 
       if (!response.data.error && response.data.accessToken) {
         localStorage.setItem('token', response.data.accessToken);
-        localStorage.setItem('userId', response.data.user.userId); // <-- assuming userId is returned
+        localStorage.setItem('userId', response.data.user.userId);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
 
         setMessage({
           type: 'success',
@@ -35,15 +38,28 @@ const Login = () => {
         });
 
         setTimeout(() => {
-          const intendedPath = localStorage.getItem('intendedPath') || '/profile';
+          const intendedPath = localStorage.getItem('intendedPath') || 
+            (response.data.user.role === 'admin' ? '/admin' : '/homepage');
           localStorage.removeItem('intendedPath');
           navigate(intendedPath);
-        }, 1500); // delay for message visibility
+        }, 1500);
+      } else {
+        // Defensive fallback if backend sends error:true
+        setMessage({
+          type: 'error',
+          content: response.data.message || 'Login failed',
+        });
       }
     } catch (error) {
+      console.error('Login error:', error);
+
+      const errorMsg = error.response?.data?.message
+        || error.message
+        || 'Login failed due to network or server error';
+
       setMessage({
         type: 'error',
-        content: error.response?.data?.message || 'Login failed',
+        content: errorMsg,
       });
     }
   };
@@ -64,7 +80,7 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-l font-bold">
                 Email
               </label>
               <input
@@ -82,7 +98,7 @@ const Login = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-l font-bold">
                 Password
               </label>
               <input
@@ -122,7 +138,7 @@ const Login = () => {
 
         <div className="text-center text-white text-xs mt-4">
           Ordermade - fashion based application for customized experience and connect with fashion designers<br />
-          This website is still a work in progress.
+          <span className="text-gray-200">© 2025 All rights reserved made by Michelle Christi Tandiono e2100306 for BIT305</span>
         </div>
       </div>
     </div>

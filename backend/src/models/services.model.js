@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const servicesSchema = new mongoose.Schema({
+const servicesSchema = new Schema({
     title:{
         type: String,
         required: [true, 'Title is required'],
@@ -19,7 +19,7 @@ const servicesSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Description is required']
     },
-    imageUrl: {
+    imageURL: {
         type: String,
         required: [true, 'image URL is required']
     },
