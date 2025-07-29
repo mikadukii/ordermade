@@ -480,7 +480,7 @@ app.delete("/delete-services/:id", authenticateToken, isAdmin, async (req, res) 
 
 
 //stripe payment integration
-const stripe = require('stripe')('sk_test_51RRpyq2eCI3ypHyOVP4Ycj1IUB8IBiV7xDFlTQO4Bhu2fH6dEyAODcVzz7BVXYpSQquRQK0HTYnkZT8Az7RauXaB002TsoCUOi'); 
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); 
 
 app.post('/create-checkout-session', authenticateToken, async (req, res) => {
   const { servicesId, title, description, imageURL } = req.body;
