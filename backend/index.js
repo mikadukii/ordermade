@@ -18,7 +18,7 @@ app.use(cors({ origin: '*' }));
 
 const {authenticateToken, isAdmin} = require('./utilities.js');
 // Connect to MongoDB
-mongoose.connect(config.connectionString, {
+mongoose.connect(config.process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -47,7 +47,9 @@ app.post("/image-upload", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const imageURL = `http://localhost:3000/uploads/${req.file.filename}`;
+    const BASE_URL = process.env.BASE_URL;
+
+    const imageURL = `${BASE_URL}/uploads/${req.file.filename}`;
     res.status(201).json({ imageURL });
 
   } catch (error) {
@@ -492,7 +494,7 @@ app.post('/create-checkout-session', authenticateToken, async (req, res) => {
     }
 
     // Construct query string to redirect back after Stripe
-    const successUrl = new URL('http://localhost:5173/order-success');
+    const successUrl = new URL(`${BASE_URL}/order-success`);
     successUrl.searchParams.append('servicesId', servicesId);
     successUrl.searchParams.append('title', encodeURIComponent(title));
     successUrl.searchParams.append('desc', encodeURIComponent(description));
