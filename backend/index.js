@@ -4,6 +4,8 @@ const config = require('./config.json');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const express = require('express');
+const serverless = require("serverless-http");
+
 // Create an Express app
 const app = express();
 const cors = require('cors');
@@ -556,8 +558,6 @@ app.get('/recommended-services', authenticateToken, async (req, res) => {
 });
 
 // Start the server
-const PORT = Number(process.env.PORT?.trim()) || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+module.exports = serverless(app);
+
 
