@@ -73,7 +73,7 @@ const Portfolio = require('./src/models/portfolio.model.js');
 const Services = require('./src/models/services.model.js');
 
 // Register Account
-app.post("/register", async (req, res) => {
+app.post("/api/register", async (req, res) => {
   const { username, email, password, bustSize, waistSize, hipSize } = req.body;
 
   if (!username || !email || !password || !bustSize || !waistSize || !hipSize) {
@@ -117,7 +117,7 @@ app.post("/register", async (req, res) => {
 
 
 
-app.post("/login", async (req, res) => {
+app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
