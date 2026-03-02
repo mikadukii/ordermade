@@ -26,7 +26,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const response = await axios.post(`${API_URL}/login`, data);
+      const response = await axios.post(`${API_URL}/login`, formData);
 
       if (!response.data.error && response.data.accessToken) {
         localStorage.setItem('token', response.data.accessToken);
