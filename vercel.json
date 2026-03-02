@@ -2,6 +2,6 @@
   "outputDirectory": "frontend/dist",
   "buildCommand": "npm run build"
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.js" }
+    { "source": "/backend/(.*)", "destination": "/backend/index.js" }
   ]
 }
