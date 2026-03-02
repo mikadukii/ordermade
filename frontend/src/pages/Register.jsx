@@ -21,7 +21,8 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post("http://localhost:3000/register", formsData);
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            const response = await axios.post(`${API_URL}/register`, formsData);
 
             if (response.data.accessToken && response.data.user) {
             // ✅ Save token and user info
