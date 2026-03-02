@@ -2,11 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-const REPO_NAME = 'ordermade';
-
-
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/ordermade/',
-  plugins: [react(),tailwindcss(),],
+  // Use '/' for Vercel, and '/ordermade/' for GitHub Pages
+  base: process.env.VERCEL ? '/' : '/ordermade/', 
+  plugins: [react(), tailwindcss()],
 })
