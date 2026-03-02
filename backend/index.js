@@ -15,7 +15,7 @@ const path = require('path');
 const upload = require('./multer');
 const Order = require('./src/models/order.model.js');
 
-app.use(cors({ origin: '*' }));
+app.use(cors());
 
 
 const {authenticateToken, isAdmin} = require('./utilities.js');
